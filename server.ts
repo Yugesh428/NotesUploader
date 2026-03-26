@@ -1,3 +1,6 @@
+console.log("DB_HOST:", process.env.DB_HOST ? "Exists" : "MISSING");
+console.log("PORT:", process.env.PORT);
+
 import "reflect-metadata"; // <-- THIS MUST BE THE VERY FIRST LINE
 import app from "./src/app";
 import { envConfig } from "./src/config/config";
