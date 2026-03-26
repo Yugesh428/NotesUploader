@@ -1,15 +1,20 @@
-console.log("DB_HOST:", process.env.DB_HOST ? "Exists" : "MISSING");
-console.log("PORT:", process.env.PORT);
+import "reflect-metadata";
+import * as dotenv from "dotenv";
+dotenv.config(); // 1. THIS MUST BE AT THE VERY TOP
 
-import "reflect-metadata"; // <-- THIS MUST BE THE VERY FIRST LINE
 import app from "./src/app";
 import { envConfig } from "./src/config/config";
-import "./src/models/connection"; // This file likely connects to Sequelize and loads models
+import "./src/models/connection";
 
 function startServer() {
-  const port = envConfig.portNumber || 8000; // Use envConfig for port or default to 8000
-  app.listen(port, function () {
-    console.log(`Server has started at port ${port}`); // <-- Use the 'port' variable here
+  // 2. LOGIC FIX: Render provides a 'PORT' variable. We must use it.
+  // If process.env.PORT is not used, Render cannot "see" your app.
+  const port = process.env.PORT || envConfig.portNumber || 8000;
+
+  app.listen(port, () => {
+    console.log(`🚀 Pustakalaya live on port: ${port}`);
+    // Check again - these should now show "FOUND"
+    console.log("DB_HOST CHECK:", process.env.DB_HOST ? "FOUND" : "MISSING");
   });
 }
 

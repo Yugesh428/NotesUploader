@@ -39,7 +39,7 @@ sequelize
 
 // ✅ Sync Database
 // In production, you might want to use migrations instead of alter: true
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync({ force: true }).then(() => {
   console.log("📦 Database synced (Alter: true)");
 });
 
