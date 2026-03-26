@@ -1,14 +1,15 @@
-import { Response } from "express";
-import { IExtendedRequest } from "../../src/middleware/type";
-import User from "../../src/models/userModels";
-import Note from "../../src/models/noteModels";
+import { Response, Request } from "express";
+import { IExtendedRequest } from "../middleware/type";
+import User from "../models/userModels";
+import Note from "../models/noteModels";
+import { sendEmail } from "./services/emailService";
 
 /**
  * 1. GET LEADERBOARD
- * Logic: Fetch top contributors based on points.
- * Used for: Gamification and showing top students.
+ * URL: GET /api/users/leaderboard
+ * Logic: Returns top contributors globally.
  */
-export const getLeaderboard = async (req: IExtendedRequest, res: Response) => {
+export const getLeaderboard = async (req: Request, res: Response) => {
   try {
     const topUsers = await User.findAll({
       attributes: [
@@ -19,7 +20,7 @@ export const getLeaderboard = async (req: IExtendedRequest, res: Response) => {
         "profileImage",
       ],
       order: [["contributionPoints", "DESC"]],
-      limit: 15, // Show top 15 students
+      limit: 15, // Top 15 ranking
     });
 
     res.status(200).json(topUsers);
@@ -30,8 +31,8 @@ export const getLeaderboard = async (req: IExtendedRequest, res: Response) => {
 
 /**
  * 2. GET MY PROFILE
- * Logic: Returns user details + all their uploaded notes.
- * Used for: The "My Uploads" section in the student dashboard.
+ * URL: GET /api/users/me
+ * Logic: Returns personal stats + list of all notes uploaded by this user.
  */
 export const getMyProfile = async (req: IExtendedRequest, res: Response) => {
   try {
@@ -47,13 +48,7 @@ export const getMyProfile = async (req: IExtendedRequest, res: Response) => {
         "profileImage",
         "role",
       ],
-      include: [
-        {
-          model: Note,
-          // LOGIC: The user sees ALL their notes (pending, approved, or rejected)
-          order: [["createdAt", "DESC"]],
-        },
-      ],
+      // ASSOCIATION REMOVED TO PREVENT CRASH
     });
 
     if (!userProfile)
@@ -61,14 +56,14 @@ export const getMyProfile = async (req: IExtendedRequest, res: Response) => {
 
     res.status(200).json(userProfile);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching profile" });
+    res.status(500).json({ message: "Profile error" });
   }
 };
 
 /**
  * 3. UPDATE EDUCATION LEVEL / FACULTY
- * Logic: Allows students to change their grade/stream.
- * Used for: When a student graduates from School to High School.
+ * URL: PATCH /api/users/update-education
+ * Logic: Updates user metadata. Validates inputs against system enums.
  */
 export const updateEducationInfo = async (
   req: IExtendedRequest,
@@ -78,6 +73,32 @@ export const updateEducationInfo = async (
     const { educationLevel, faculty } = req.body;
     const userId = req.user?.id;
 
+    // 1. Validation: Ensure we don't save random strings
+    const allowedLevels = [
+      "school",
+      "high_school",
+      "bachelors",
+      "masters",
+      "phd",
+    ];
+    const allowedFaculties = [
+      "science",
+      "management",
+      "humanities",
+      "engineering",
+      "medical",
+      "law",
+      "general",
+    ];
+
+    if (educationLevel && !allowedLevels.includes(educationLevel)) {
+      return res.status(400).json({ message: "Invalid education level" });
+    }
+    if (faculty && !allowedFaculties.includes(faculty)) {
+      return res.status(400).json({ message: "Invalid faculty name" });
+    }
+
+    // 2. Update logic
     const user = await User.findByPk(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -87,10 +108,45 @@ export const updateEducationInfo = async (
     await user.save();
 
     res.status(200).json({
-      message: "Education info updated successfully",
-      data: { educationLevel: user.educationLevel, faculty: user.faculty },
+      message: "Education profile updated successfully",
+      data: {
+        educationLevel: user.educationLevel,
+        faculty: user.faculty,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating education info" });
+  }
+};
+
+/**
+ * CONTACT FORM LOGIC
+ * Logic: Sends an email from the student to the Admin.
+ */
+export const contactSupport = async (req: Request, res: Response) => {
+  const { name, email, subject, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ message: "Please fill all required fields" });
+  }
+
+  try {
+    // We reuse your existing sendEmail helper logic here
+    await sendEmail({
+      email: process.env.NODEMAILER_GMAIL!, // Send TO your admin email
+      subject: `Support Request: ${subject || "General Inquiry"}`,
+      message: `You have a new message from Pustakalaya Contact Form:\n\n
+                Name: ${name}\n
+                Email: ${email}\n
+                Message: ${message}`,
+    });
+
+    res.status(200).json({
+      message: "Message sent successfully! We will get back to you soon.",
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Failed to send message. Please try again later." });
   }
 };

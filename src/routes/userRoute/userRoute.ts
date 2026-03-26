@@ -1,5 +1,6 @@
 import express, { Router } from "express";
 import {
+  contactSupport,
   getLeaderboard,
   getMyProfile,
   updateEducationInfo,
@@ -25,5 +26,6 @@ router.get("/me", isLoggedIn, getMyProfile);
  * PATCH /api/users/update-education
  */
 router.patch("/update-education", isLoggedIn, updateEducationInfo);
+router.post("/contact", contactSupport);
 
 export default router;

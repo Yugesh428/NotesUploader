@@ -7,36 +7,25 @@ import {
   Default,
   Unique,
   IsEmail,
-  HasMany, // Added for relationship
+  HasMany,
 } from "sequelize-typescript";
 import { UserRole, EducationLevel, Faculty } from "../middleware/type";
-import Note from "./noteModels"; // Import Note model
+import Note from "./noteModels";
 
-@Table({
-  tableName: "users",
-  modelName: "User",
-  timestamps: true,
-})
+@Table({ tableName: "users", timestamps: true })
 class User extends Model {
   @PrimaryKey
   @Default(DataType.UUIDV4)
   @Column(DataType.UUID)
   declare id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  declare username: string;
+  @Column({ allowNull: false }) declare username: string;
 
-  @Unique
-  @IsEmail
-  @Column({ type: DataType.STRING, allowNull: false })
-  declare email: string;
+  @Unique @IsEmail @Column({ allowNull: false }) declare email: string;
 
-  @Column({ type: DataType.STRING, allowNull: true })
-  declare password?: string;
+  @Column({ allowNull: true }) declare password?: string;
 
-  // Added: Profile Image for Leaderboard/Profile
-  @Column({ type: DataType.STRING, allowNull: true })
-  declare profileImage?: string;
+  @Column(DataType.STRING) declare profileImage?: string;
 
   @Column({
     type: DataType.ENUM("student", "moderator", "SuperAdmin"),
@@ -50,7 +39,6 @@ class User extends Model {
   })
   declare educationLevel: EducationLevel;
 
-  // Added: Faculty (Used for High School & above filtering)
   @Default("general")
   @Column({
     type: DataType.ENUM(
@@ -65,26 +53,14 @@ class User extends Model {
   })
   declare faculty: Faculty;
 
-  // Social Login IDs
-  @Column(DataType.STRING)
-  declare googleId?: string;
+  @Default(0) @Column(DataType.INTEGER) declare contributionPoints: number;
 
-  @Column(DataType.STRING)
-  declare facebookId?: string;
+  @Column(DataType.STRING) declare otp?: string;
 
-  // Security
-  @Column(DataType.STRING)
-  declare otp?: string;
+  @Column(DataType.DATE) declare otpExpiry?: Date;
 
-  @Column(DataType.DATE)
-  declare otpExpiry?: Date;
-
-  @Default(0)
-  @Column(DataType.INTEGER)
-  declare contributionPoints: number;
-
-  // Added: Relationship Logic
-  @HasMany(() => Note)
+  // Association: Explicitly state 'userId' as the target key
+  @HasMany(() => Note, "userId")
   declare notes: Note[];
 }
 
