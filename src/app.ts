@@ -13,7 +13,7 @@ app.use(express.json()); // Essential for parsing JSON bodies
 app.use(express.urlencoded({ extended: true })); // Good practice for form-data
 app.use(
   cors({
-    origin: "http://localhost:3000", // Your Frontend URL
+    origin: ["http://localhost:3000", "https://pustkalaya.vercel.app"], // Your Frontend URL
   }),
 );
 
